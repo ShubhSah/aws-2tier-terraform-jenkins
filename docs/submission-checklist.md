@@ -1,0 +1,15 @@
+# Submission Checklist
+- [ ] GitHub repository created
+- [ ] Terraform files pushed
+- [ ] Flask source pushed
+- [ ] Dockerfile pushed
+- [ ] Jenkinsfile pushed
+- [ ] Terraform plan screenshot
+- [ ] Terraform apply screenshot
+- [ ] Jenkins successful pipeline screenshot
+- [ ] EC2 screenshot
+- [ ] RDS screenshot
+- [ ] Running application screenshot
+- [ ] Database persistence tested
+- [ ] ZIP contains source
+- [ ] No credentials, private keys, or Terraform state included
