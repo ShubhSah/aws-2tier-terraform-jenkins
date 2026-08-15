@@ -1,0 +1,33 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+
+# AWS credentials / keys
+*.pem
+*.key
+credentials
+.aws/
+
+# Environment files
+.env
+.env.*
+
+# Application
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
