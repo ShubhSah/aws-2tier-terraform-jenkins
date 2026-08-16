@@ -34,9 +34,30 @@ pipeline {
             }
         }
 
+        stage('Test AWS Access') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'aws-credentials',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        aws sts get-caller-identity
+                        aws s3 ls s3://shubham-2tier-tfstate-618257309226/aws-2tier/
+                    '''
+                }
+            }
+        }
+
         stage('Terraform Format') {
             steps {
-                sh 'terraform -chdir=terraform fmt -check -recursive'
+                sh '''
+                    cd terraform
+                    terraform fmt -check -recursive
+                '''
             }
         }
 
@@ -49,14 +70,20 @@ pipeline {
                         passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                     )
                 ]) {
-                    sh 'terraform -chdir=terraform init -input=false'
+                    sh '''
+                        cd terraform
+                        terraform init -input=false
+                    '''
                 }
             }
         }
 
         stage('Terraform Validate') {
             steps {
-                sh 'terraform -chdir=terraform validate'
+                sh '''
+                    cd terraform
+                    terraform validate
+                '''
             }
         }
 
@@ -70,11 +97,13 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        terraform -chdir=terraform plan \
-                          -input=false \
-                          -var="key_name=${KEY_NAME}" \
-                          -var="db_password=${DB_PASSWORD}" \
-                          -out=tfplan
+                        cd terraform
+
+                        terraform plan \
+                            -input=false \
+                            -out=tfplan \
+                            -var="key_name=${KEY_NAME}" \
+                            -var="db_password=${DB_PASSWORD}"
                     '''
                 }
             }
@@ -82,7 +111,10 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                input message: 'Apply infrastructure to AWS?', ok: 'Deploy'
+                input(
+                    message: 'Apply infrastructure to AWS?',
+                    ok: 'Deploy'
+                )
 
                 withCredentials([
                     usernamePassword(
@@ -91,7 +123,14 @@ pipeline {
                         passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                     )
                 ]) {
-                    sh 'terraform -chdir=terraform apply -input=false -auto-approve tfplan'
+                    sh '''
+                        cd terraform
+
+                        terraform apply \
+                            -input=false \
+                            -auto-approve \
+                            tfplan
+                    '''
                 }
             }
         }
@@ -103,9 +142,12 @@ pipeline {
                         credentialsId: 'aws-credentials',
                         usernameVariable: 'AWS_ACCESS_KEY_ID',
                         passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                    )
+                    }
                 ]) {
-                    sh 'terraform -chdir=terraform output app_url'
+                    sh '''
+                        cd terraform
+                        terraform output app_url
+                    '''
                 }
             }
         }
@@ -113,7 +155,15 @@ pipeline {
 
     post {
         always {
-            sh 'rm -f terraform/tfplan || true'
+            sh 'rm -f terraform/tfplan'
+        }
+
+        success {
+            echo 'AWS 2-Tier deployment completed successfully!'
+        }
+
+        failure {
+            echo 'AWS 2-Tier deployment failed. Check the console output.'
         }
     }
 }
