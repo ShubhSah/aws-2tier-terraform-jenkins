@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = 'ap-south-1'
-        TF_IN_AUTOMATION   = 'true'
+        TF_IN_AUTOMATION = 'true'
     }
 
     parameters {
@@ -44,7 +44,6 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        set +x
                         aws sts get-caller-identity
                         aws s3 ls s3://shubham-2tier-tfstate-618257309226/aws-2tier/
                     '''
@@ -54,10 +53,7 @@ pipeline {
 
         stage('Terraform Format') {
             steps {
-                sh '''
-                    cd terraform
-                    terraform fmt -check -recursive
-                '''
+                sh 'cd terraform && terraform fmt -check -recursive'
             }
         }
 
@@ -70,20 +66,14 @@ pipeline {
                         passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                     )
                 ]) {
-                    sh '''
-                        cd terraform
-                        terraform init -input=false
-                    '''
+                    sh 'cd terraform && terraform init -input=false'
                 }
             }
         }
 
         stage('Terraform Validate') {
             steps {
-                sh '''
-                    cd terraform
-                    terraform validate
-                '''
+                sh 'cd terraform && terraform validate'
             }
         }
 
@@ -98,12 +88,7 @@ pipeline {
                 ]) {
                     sh '''
                         cd terraform
-
-                        terraform plan \
-                            -input=false \
-                            -out=tfplan \
-                            -var="key_name=${KEY_NAME}" \
-                            -var="db_password=${DB_PASSWORD}"
+                        terraform plan -input=false -out=tfplan -var="key_name=${KEY_NAME}" -var="db_password=${DB_PASSWORD}"
                     '''
                 }
             }
@@ -111,10 +96,7 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                input(
-                    message: 'Apply infrastructure to AWS?',
-                    ok: 'Deploy'
-                )
+                input message: 'Apply infrastructure to AWS?', ok: 'Deploy'
 
                 withCredentials([
                     usernamePassword(
@@ -123,32 +105,14 @@ pipeline {
                         passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                     )
                 ]) {
-                    sh '''
-                        cd terraform
-
-                        terraform apply \
-                            -input=false \
-                            -auto-approve \
-                            tfplan
-                    '''
+                    sh 'cd terraform && terraform apply -input=false -auto-approve tfplan'
                 }
             }
         }
 
         stage('Application URL') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'aws-credentials',
-                        usernameVariable: 'AWS_ACCESS_KEY_ID',
-                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                    }
-                ]) {
-                    sh '''
-                        cd terraform
-                        terraform output app_url
-                    '''
-                }
+                sh 'cd terraform && terraform output app_url'
             }
         }
     }
